@@ -10,6 +10,14 @@ if (process.env.USE_SQLITE === 'true') {
     storage: storagePath,
     logging: false
   });
+} else if (process.env.DATABASE_URL) {
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
+    logging: false,
+    dialectOptions: {
+      ssl: process.env.DB_SSL === 'false' ? false : { require: true, rejectUnauthorized: false }
+    }
+  });
 } else {
   sequelize = new Sequelize(
     process.env.DB_NAME || 'pos_inventory_db',

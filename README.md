@@ -43,11 +43,80 @@ npm install
 npm run dev      # Launches Vite on http://localhost:3000
 ```
 
+Default login users after seeding: `admin`, `manager`, `cashier` (passwords from your `.env`).
+
+---
+
+## Deploy to Production (Railway + Vercel)
+
+Deploy the **backend on Railway** first, then the **frontend on Vercel**.
+
+### Step 1 — Push code to GitHub
+
+```bash
+git add .
+git commit -m "Fix bugs and prepare for deployment"
+git push origin main
+```
+
+### Step 2 — Deploy backend on Railway
+
+1. Go to [railway.app](https://railway.app) and sign in with GitHub.
+2. Click **New Project → Deploy from GitHub repo**.
+3. Select this repository.
+4. Open the service **Settings** and set **Root Directory** to `server`.
+5. Click **+ New → Database → PostgreSQL** in the same project.
+6. Open the **backend service → Variables** and add:
+
+| Variable | Value |
+|----------|--------|
+| `JWT_SECRET` | A long random string |
+| `USE_SQLITE` | `false` |
+| `DATABASE_URL` | Reference from Postgres service (`${{Postgres.DATABASE_URL}}`) |
+| `ADMIN_PASSWORD` | Password for the `admin` user |
+| `MANAGER_PASSWORD` | Password for the `manager` user |
+| `CASHIER_PASSWORD` | Password for the `cashier` user |
+
+> Railway sets `PORT` automatically — do not override it.
+
+7. After deploy finishes, open **Settings → Networking → Generate Domain**.
+8. Seed the database once (Railway CLI or one-off command):
+
+```bash
+npm i -g @railway/cli
+railway login
+railway link
+railway run npm run seed
+```
+
+9. Copy your Railway URL, e.g. `https://your-app.up.railway.app`.
+
+### Step 3 — Deploy frontend on Vercel
+
+1. Go to [vercel.com](https://vercel.com) and sign in with GitHub.
+2. Click **Add New → Project** and import this repository.
+3. Set **Root Directory** to `client`.
+4. Framework preset: **Vite** (build: `npm run build`, output: `dist`).
+5. Add environment variable:
+
+| Name | Value |
+|------|--------|
+| `VITE_API_BASE` | `https://your-app.up.railway.app/api` |
+
+6. Click **Deploy**.
+
+### Step 4 — Test
+
+1. Open your Vercel URL.
+2. Log in with `admin` / your `ADMIN_PASSWORD`.
+3. Confirm products load and checkout works.
+
 ---
 
 ## Configuration
 
 - All backend settings live in `server/.env` (never committed to Git — see `.gitignore`).
 - Use `server/.env.example` as a template.
-- To connect to PostgreSQL instead of SQLite: set `USE_SQLITE=false` and fill in the `DB_*` variables in your `.env`.
-- Set `VITE_API_BASE` in Vercel environment variables to point to your deployed backend URL.
+- For PostgreSQL locally: set `USE_SQLITE=false` and fill in `DB_*` or `DATABASE_URL`.
+- Set `VITE_API_BASE` in Vercel to your deployed Railway URL with `/api` at the end.
+- Product image uploads on Railway use ephemeral disk — files may not survive redeploys.
