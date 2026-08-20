@@ -11,10 +11,14 @@ const { authenticateToken, authorizeRoles } = require('./authMiddleware');
 
 require('dotenv').config();
 
-const app = express();
-const PORT = process.env.PORT || 5001;
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkeyforposteerop123!';
-
+const PORT = process.env.PORT;
+if (!PORT) {
+  throw new Error('PORT environment variable is required');
+}
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 // Express configuration
 app.use(cors());
 app.use(express.json());

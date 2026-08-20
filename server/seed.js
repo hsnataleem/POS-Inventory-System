@@ -8,9 +8,9 @@ const seedData = async () => {
 
     // 1. Create Default Users
     const salt = await bcrypt.genSalt(10);
-    const adminPassword = await bcrypt.hash('admin123', salt);
-    const managerPassword = await bcrypt.hash('manager123', salt);
-    const cashierPassword = await bcrypt.hash('cashier123', salt);
+    const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', salt);
+    const managerPassword = await bcrypt.hash(process.env.MANAGER_PASSWORD || 'manager123', salt);
+    const cashierPassword = await bcrypt.hash(process.env.CASHIER_PASSWORD || 'cashier123', salt);
 
     await User.bulkCreate([
       {
