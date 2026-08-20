@@ -42,6 +42,24 @@ const resolveImageUrl = (url) => {
   return `${UPLOADS_BASE}${url}`;
 };
 
+const parseJsonResponse = async (res) => {
+  const text = await res.text();
+  if (!text) {
+    throw new Error(
+      `Server returned an empty response (${res.status}). ` +
+      'Check that VITE_API_BASE points to your Railway URL with /api, and that the backend is running.'
+    );
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(
+      `Server returned an invalid response (${res.status}). ` +
+      'Verify VITE_API_BASE is set on Vercel and redeploy after changing it.'
+    );
+  }
+};
+
 // Helper to save & load auth state
 const getAuthToken = () => localStorage.getItem('token');
 const setAuthToken = (token) => localStorage.setItem('token', token);
@@ -65,7 +83,7 @@ function Login({ onLoginSuccess }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok) {
         throw new Error(data.message || 'Login failed');
       }

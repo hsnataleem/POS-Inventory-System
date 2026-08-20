@@ -64,7 +64,8 @@ git push origin main
 1. Go to [railway.app](https://railway.app) and sign in with GitHub.
 2. Click **New Project → Deploy from GitHub repo**.
 3. Select this repository.
-4. Open the service **Settings** and set **Root Directory** to `server`.
+4. **Important:** Open the service **Settings** and set **Root Directory** to `server`.
+   - If you skip this, Railway builds from the repo root and fails with *"Railpack could not determine how to build the app"*.
 5. Click **+ New → Database → PostgreSQL** in the same project.
 6. Open the **backend service → Variables** and add:
 

@@ -20,10 +20,15 @@ if (!process.env.JWT_SECRET) {
 }
 const JWT_SECRET = process.env.JWT_SECRET;
 const app = express();
+const HOST = '0.0.0.0';
 
 // Express configuration
 app.use(cors());
 app.use(express.json());
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
 // Set up public folder for static files and uploads
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -488,6 +493,10 @@ app.get('/api/analytics', authenticateToken, authorizeRoles('Admin', 'Inventory 
 // ==========================================
 // ERROR HANDLING MIDDLEWARE
 // ==========================================
+app.use('/api', (req, res) => {
+  res.status(404).json({ message: 'API route not found' });
+});
+
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
@@ -497,9 +506,10 @@ app.use((err, req, res, next) => {
 
 // Sync and Start Server
 sequelize.sync().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
   });
 }).catch(err => {
   console.error('Failed to sync DB:', err);
+  process.exit(1);
 });
