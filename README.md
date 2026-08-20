@@ -72,10 +72,10 @@ cd POS-Inventory-System
 ```bash
 cd server
 cp .env.example .env            # create .env from template
-# Edit server/.env and set values (see below)
+# Edit server/.env and set required environment variables (see below)
 npm install
-npm run seed                    # seeds DB (requires ADMIN_PASSWORD, MANAGER_PASSWORD, CASHIER_PASSWORD)
-npm start                       # starts API (requires PORT and JWT_SECRET)
+npm run seed                    # seeds DB (requires ADMIN_PASSWORD, MANAGER_PASSWORD, CASHIER_PASSWORD to be set)
+npm start                       # starts API
 ```
 
 3. Frontend
@@ -88,31 +88,28 @@ npm run dev                     # runs Vite dev server (default http://localhost
 Open the client URL, log in with seeded credentials (see "Seeding & default users" below), and the frontend should connect to the backend at the configured API base URL.
 
 ## Environment variables (server/.env)
-Example values you'll set in `server/.env`:
-```env
-PORT=8080
-JWT_SECRET=your_strong_random_secret_here
+Set the following variables in `server/.env`. Do NOT store actual secrets in the repo or commit them to source control; keep them local or in your deployment platform's secret manager.
 
-# Seed passwords (required for seed script)
-ADMIN_PASSWORD=admin-secret
-MANAGER_PASSWORD=manager-secret
-CASHIER_PASSWORD=cashier-secret
+Required variables (names only):
+- PORT
+- JWT_SECRET
+- ADMIN_PASSWORD (used by seed script; set securely)
+- MANAGER_PASSWORD (used by seed script; set securely)
+- CASHIER_PASSWORD (used by seed script; set securely)
+- USE_SQLITE (set to `true` for local development to use SQLite)
 
-# Use SQLite locally by default
-USE_SQLITE=true
-DB_PATH=./database.sqlite
+Optional / deployment variables (names only):
+- DB_PATH (path to sqlite file when using SQLite)
+- DATABASE_URL (Postgres connection string for production)
+- DB_SSL (set to control SSL for Postgres connections)
+- VITE_API_BASE (frontend: URL to backend API, set in deployment)
 
-# When using Postgres in production:
-# USE_SQLITE=false
-# DATABASE_URL=postgres://user:pass@host:port/dbname
-# DB_SSL=false
-```
 Notes:
-- `PORT` and `JWT_SECRET` are required (server will throw if missing).
-- For production with Postgres, set `USE_SQLITE=false` and provide `DATABASE_URL` or DB_* variables.
+- `PORT` and `JWT_SECRET` are required for the server to start.
+- Never commit actual secret values (passwords, JWT_SECRET, DB credentials) to the repository.
 
 ## Seeding & default users
-Run `npm run seed` inside the `server` folder to recreate the DB and insert default data. The seed script requires the three password env vars listed above.
+Run `npm run seed` inside the `server` folder to recreate the DB and insert default data. Before running the seed script, ensure you have set the three password environment variables referenced above. The seed script will fail if those are not provided.
 
 Default users after seeding:
 - admin (role: Admin)
@@ -123,16 +120,16 @@ Use the passwords you set in server/.env for each account.
 
 ## Deployment notes
 Recommended pipeline:
-- Backend: Railway (set root directory to `server`) or any Node host. Ensure env vars are provided; set `USE_SQLITE=false` and add Postgres.
-- Frontend: Vercel (root directory `client`, Vite preset). Set `VITE_API_BASE` to `<your-backend-url>/api`.
+- Backend: Railway (set root directory to `server`) or any Node host. Ensure env vars are provided securely via the platform's environment settings; do not paste secrets in code.
+- Frontend: Vercel (root directory `client`, Vite preset). Set `VITE_API_BASE` to `<your-backend-url>/api` in Vercel's environment settings.
 
 Railway tips:
 - Set backend service Root Directory to `server`.
-- Add a Postgres plugin service and set `DATABASE_URL` in variables.
+- Add a Postgres plugin service and set `DATABASE_URL` using Railway's service variables.
 - Seed the DB once using the Railway CLI or a one-off run.
 
 Vercel tips:
-- Set `VITE_API_BASE` env var to point to your deployed backend API base (e.g., `https://your-app.up.railway.app/api`).
+- Configure `VITE_API_BASE` as a project environment variable in Vercel settings.
 - Build: `npm run build`; output dir: `dist`.
 
 ## Files & important code paths
@@ -144,8 +141,8 @@ Vercel tips:
 - client/ — front-end application (React + Vite; see client/package.json scripts)
 
 ## Troubleshooting & common issues
-- "PORT environment variable is required" or "JWT_SECRET environment variable is required": ensure those env vars exist in server/.env.
-- If using Postgres in production, ensure `DB_SSL`/`DATABASE_URL` settings match host requirements (some hosts require SSL with rejectUnauthorized: false).
+- If the server complains about missing environment variables, verify required env vars are set in `server/.env` or your deployment environment.
+- For production Postgres connections, use the deployment platform's secret manager and verify SSL settings if needed.
 - Image uploads are stored in `server/uploads/` and are ephemeral on many PaaS providers; use persistent storage or external object storage for production.
 
 ## Contributing
