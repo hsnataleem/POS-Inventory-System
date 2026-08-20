@@ -4,9 +4,10 @@ require('dotenv').config();
 let sequelize;
 
 if (process.env.USE_SQLITE === 'true') {
+  const storagePath = process.env.DB_PATH || './database.sqlite';
   sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: './database.sqlite',
+    storage: storagePath,
     logging: false
   });
 } else {
