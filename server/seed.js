@@ -8,9 +8,12 @@ const seedData = async () => {
 
     // 1. Create Default Users
     const salt = await bcrypt.genSalt(10);
-    const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', salt);
-    const managerPassword = await bcrypt.hash(process.env.MANAGER_PASSWORD || 'manager123', salt);
-    const cashierPassword = await bcrypt.hash(process.env.CASHIER_PASSWORD || 'cashier123', salt);
+    if (!process.env.ADMIN_PASSWORD || !process.env.MANAGER_PASSWORD || !process.env.CASHIER_PASSWORD) {
+      throw new Error('ADMIN_PASSWORD, MANAGER_PASSWORD, and CASHIER_PASSWORD env vars must be set for seeding');
+    }
+    const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, salt);
+    const managerPassword = await bcrypt.hash(process.env.MANAGER_PASSWORD, salt);
+    const cashierPassword = await bcrypt.hash(process.env.CASHIER_PASSWORD, salt);
 
     await User.bulkCreate([
       {
