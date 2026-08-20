@@ -1,123 +1,161 @@
 # POS & Inventory Management System
 
-A fully-functional POS and Inventory Management System with role-based dashboard screens for **Admin**, **Inventory Manager**, and **Cashier**.
+A role-based Point-of-Sale and Inventory Management application with separate dashboards and permissions for Admin, Inventory Manager, and Cashier. It supports product categories with category-specific fields, image uploads, checkout/transactions with stock decrement, low-stock detection, and simple analytics.
 
-## Running the Application Locally
+---
 
-The project consists of a `server/` (Node.js/Express + SQLite/Postgres) and a `client/` (React + Tailwind CSS + Vite) folder.
+## Quick summary / What this solves
+This project helps small retail stores manage products, track stock, perform checkouts, and view basic reports. Roles restrict actions: Admin manages users and settings, Inventory Manager manages products and inventory, and Cashier performs sales.
 
-### 1. Set up Environment Variables
+## Stack
+- Language(s): JavaScript (Node.js backend, React frontend)
+- Backend: Node.js + Express
+- Frontend: React with Vite and Tailwind CSS
+- ORM: Sequelize (supports SQLite and Postgres)
+- Key libs: express, sequelize, sqlite3/pg, jsonwebtoken, bcryptjs, multer, react-router-dom, tailwindcss
 
-Copy the example env file and fill in your own values:
-```bash
-cd server
-cp .env.example .env
+## Repository layout
+```
+client/                React + Vite frontend (UI)
+server/                Backend (Express + Sequelize)
+  server.js            Main API server and route definitions
+  models.js            Sequelize models (User, Product, Transaction, TransactionItem)
+  db.js                DB connection selector (SQLite vs Postgres)
+  authMiddleware.js    JWT authentication and role authorization
+  seed.js              Seeds default users and sample products
+README.md              Documentation (this file)
+.gitignore
 ```
 
-Open `server/.env` and set the required variables:
+## Features
+- Role-based auth: Admin, Inventory Manager, Cashier
+- User management (Admin)
+- Product CRUD with category-specific metadata (Fragile, Cold, Tech, Cleaning, General)
+- Product image upload (uploads/ served statically)
+- Checkout/transaction creation with stock decrement and transaction items
+- Low-stock detection and simple analytics (top-selling items, totals)
+- Support for SQLite (dev) or Postgres (production)
+- Simple seeding script to bootstrap users and products
+
+## API (summary)
+All API endpoints are rooted at `/api`. Authentication is via Bearer JWT (Authorization: `Bearer <token>`).
+
+- Auth
+  - POST /api/auth/login — login (returns token)
+  - POST /api/auth/register — register user (Admin-only; seeding creates initial users)
+  - GET /api/auth/me — current user (requires auth)
+- Users (Admin only)
+  - GET /api/users — list users
+  - PUT /api/users/:id — update role, isActive, password
+- Products
+  - GET /api/products — list products (search, filter by category)
+  - GET /api/products/sku/:sku — get product by SKU
+  - GET /api/products/low-stock — low-stock products (Admin, Inventory Manager)
+  - POST /api/products — create product (Admin, Inventory Manager) [multipart/form-data with optional `image` file]
+  - PUT /api/products/:id — update product (Admin, Inventory Manager)
+  - DELETE /api/products/:id — delete product (Admin, Inventory Manager)
+- Transactions / Billing
+  - POST /api/transactions/checkout — create a checkout transaction with items (requires auth; Cashier allowed)
+  - GET /api/transactions — list transactions (Cashier sees own, others see all)
+  - GET /api/transactions/:id — transaction details (with items)
+- Analytics
+  - GET /api/analytics — totals, top selling, low stock counts (Admin, Inventory Manager)
+
+## Local development (short path)
+1. Clone
+```bash
+git clone https://github.com/hsnataleem/POS-Inventory-System.git
+cd POS-Inventory-System
+```
+
+2. Backend
+```bash
+cd server
+cp .env.example .env            # create .env from template
+# Edit server/.env and set values (see below)
+npm install
+npm run seed                    # seeds DB (requires ADMIN_PASSWORD, MANAGER_PASSWORD, CASHIER_PASSWORD)
+npm start                       # starts API (requires PORT and JWT_SECRET)
+```
+
+3. Frontend
+```bash
+cd client
+npm install
+npm run dev                     # runs Vite dev server (default http://localhost:3000)
+```
+
+Open the client URL, log in with seeded credentials (see "Seeding & default users" below), and the frontend should connect to the backend at the configured API base URL.
+
+## Environment variables (server/.env)
+Example values you'll set in `server/.env`:
 ```env
 PORT=8080
 JWT_SECRET=your_strong_random_secret_here
 
-# Seed passwords (used when running npm run seed)
-ADMIN_PASSWORD=your_admin_password
-MANAGER_PASSWORD=your_manager_password
-CASHIER_PASSWORD=your_cashier_password
+# Seed passwords (required for seed script)
+ADMIN_PASSWORD=admin-secret
+MANAGER_PASSWORD=manager-secret
+CASHIER_PASSWORD=cashier-secret
 
-# Set to true to use SQLite (recommended for local development)
+# Use SQLite locally by default
 USE_SQLITE=true
+DB_PATH=./database.sqlite
+
+# When using Postgres in production:
+# USE_SQLITE=false
+# DATABASE_URL=postgres://user:pass@host:port/dbname
+# DB_SSL=false
 ```
+Notes:
+- `PORT` and `JWT_SECRET` are required (server will throw if missing).
+- For production with Postgres, set `USE_SQLITE=false` and provide `DATABASE_URL` or DB_* variables.
 
-### 2. Run the Backend Server
-```bash
-cd server
-npm install
-npm run seed     # Creates database tables and seed users using your .env passwords
-npm start        # Launches the API on http://localhost:8080
-```
+## Seeding & default users
+Run `npm run seed` inside the `server` folder to recreate the DB and insert default data. The seed script requires the three password env vars listed above.
 
-### 3. Run the Frontend Client
-```bash
-cd client
-npm install
-npm run dev      # Launches Vite on http://localhost:3000
-```
+Default users after seeding:
+- admin (role: Admin)
+- manager (role: Inventory Manager)
+- cashier (role: Cashier)
 
-Default login users after seeding: `admin`, `manager`, `cashier` (passwords from your `.env`).
+Use the passwords you set in server/.env for each account.
 
----
+## Deployment notes
+Recommended pipeline:
+- Backend: Railway (set root directory to `server`) or any Node host. Ensure env vars are provided; set `USE_SQLITE=false` and add Postgres.
+- Frontend: Vercel (root directory `client`, Vite preset). Set `VITE_API_BASE` to `<your-backend-url>/api`.
 
-## Deploy to Production (Railway + Vercel)
+Railway tips:
+- Set backend service Root Directory to `server`.
+- Add a Postgres plugin service and set `DATABASE_URL` in variables.
+- Seed the DB once using the Railway CLI or a one-off run.
 
-Deploy the **backend on Railway** first, then the **frontend on Vercel**.
+Vercel tips:
+- Set `VITE_API_BASE` env var to point to your deployed backend API base (e.g., `https://your-app.up.railway.app/api`).
+- Build: `npm run build`; output dir: `dist`.
 
-### Step 1 — Push code to GitHub
+## Files & important code paths
+- server/server.js — API routes and core application logic (auth, product endpoints, transactions, analytics)
+- server/models.js — Sequelize models and relations
+- server/db.js — DB connection selection (SQLite vs Postgres)
+- server/authMiddleware.js — JWT verify and role authorization
+- server/seed.js — DB seeding and example data
+- client/ — front-end application (React + Vite; see client/package.json scripts)
 
-```bash
-git add .
-git commit -m "Fix bugs and prepare for deployment"
-git push origin main
-```
+## Troubleshooting & common issues
+- "PORT environment variable is required" or "JWT_SECRET environment variable is required": ensure those env vars exist in server/.env.
+- If using Postgres in production, ensure `DB_SSL`/`DATABASE_URL` settings match host requirements (some hosts require SSL with rejectUnauthorized: false).
+- Image uploads are stored in `server/uploads/` and are ephemeral on many PaaS providers; use persistent storage or external object storage for production.
 
-### Step 2 — Deploy backend on Railway
+## Contributing
+- Open an issue or PR. Describe the bug or feature and include reproduction steps.
+- Run server tests (if added) and lint checks; follow code style in the repo.
 
-1. Go to [railway.app](https://railway.app) and sign in with GitHub.
-2. Click **New Project → Deploy from GitHub repo**.
-3. Select this repository.
-4. **Important:** Open the service **Settings** and set **Root Directory** to `server`.
-   - If you skip this, Railway builds from the repo root and fails with *"Railpack could not determine how to build the app"*.
-5. Click **+ New → Database → PostgreSQL** in the same project.
-6. Open the **backend service → Variables** and add:
+## License
+(If you want a license, add one to the repository. This repo currently has no LICENSE file.)
 
-| Variable | Value |
-|----------|--------|
-| `JWT_SECRET` | A long random string |
-| `USE_SQLITE` | `false` |
-| `DATABASE_URL` | Reference from Postgres service (`${{Postgres.DATABASE_URL}}`) |
-| `ADMIN_PASSWORD` | Password for the `admin` user |
-| `MANAGER_PASSWORD` | Password for the `manager` user |
-| `CASHIER_PASSWORD` | Password for the `cashier` user |
-
-> Railway sets `PORT` automatically — do not override it.
-
-7. After deploy finishes, open **Settings → Networking → Generate Domain**.
-8. Seed the database once (Railway CLI or one-off command):
-
-```bash
-npm i -g @railway/cli
-railway login
-railway link
-railway run npm run seed
-```
-
-9. Copy your Railway URL, e.g. `https://your-app.up.railway.app`.
-
-### Step 3 — Deploy frontend on Vercel
-
-1. Go to [vercel.com](https://vercel.com) and sign in with GitHub.
-2. Click **Add New → Project** and import this repository.
-3. Set **Root Directory** to `client`.
-4. Framework preset: **Vite** (build: `npm run build`, output: `dist`).
-5. Add environment variable:
-
-| Name | Value |
-|------|--------|
-| `VITE_API_BASE` | `https://your-app.up.railway.app/api` |
-
-6. Click **Deploy**.
-
-### Step 4 — Test
-
-1. Open your Vercel URL.
-2. Log in with `admin` / your `ADMIN_PASSWORD`.
-3. Confirm products load and checkout works.
-
----
-
-## Configuration
-
-- All backend settings live in `server/.env` (never committed to Git — see `.gitignore`).
-- Use `server/.env.example` as a template.
-- For PostgreSQL locally: set `USE_SQLITE=false` and fill in `DB_*` or `DATABASE_URL`.
-- Set `VITE_API_BASE` in Vercel to your deployed Railway URL with `/api` at the end.
-- Product image uploads on Railway use ephemeral disk — files may not survive redeploys.
+## Try asking
+- How can I add a vendor/store location field to each transaction and show it in the analytics?
+- The README mentions product image uploads — where are uploaded files saved and how can I switch to S3-compatible storage?
+- Can you add endpoint docs (OpenAPI/Swagger) for the current API surface (server/server.js)?
